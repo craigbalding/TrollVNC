@@ -70,6 +70,7 @@ add_bool KeyLogging            "${TVNC_KEY_LOGGING:-}"
 
 # Strings (optional)
 add_str DesktopName            "${TVNC_DESKTOP_NAME:-}"
+add_str BindHost               "${TVNC_BIND_HOST:-}"
 add_str FrameRateSpec          "${TVNC_FRAME_RATE_SPEC:-}"
 add_str WheelTuning            "${TVNC_WHEEL_TUNING:-}"
 add_str HttpDir                "${TVNC_HTTP_DIR:-}"
