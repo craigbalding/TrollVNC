@@ -93,27 +93,23 @@ jobs:
           p = Path("src/trollvncserver.mm")
           s = p.read_text()
 
-          old_v4 = """    if (hostKind == kTVBindHostKindIPv4) {
-              gScreen->listenInterface = v4Addr;
-          """
-          new_v4 = """    if (hostKind == kTVBindHostKindIPv4) {
-              gScreen->listenInterface = v4Addr;
-              gScreen->ipv6port = 0; // explicit IPv4 bind: disable the IPv6 listener
-          """
-          if s.count(old_v4) != 1:
-              raise SystemExit("IPv4 bind patch context not found exactly once")
-          s = s.replace(old_v4, new_v4, 1)
+          line_v4 = "        gScreen->listenInterface = v4Addr;\n"
+          if s.count(line_v4) != 1:
+              raise SystemExit("IPv4 bind assignment not found exactly once")
+          s = s.replace(
+              line_v4,
+              line_v4 + "        gScreen->ipv6port = 0; // explicit IPv4 bind: disable the IPv6 listener\n",
+              1,
+          )
 
-          old_v6 = """        gScreen->listen6Interface = strdup(iface);
-          } else if (hostKind == kTVBindHostKindInvalid && gBindHost) {
-          """
-          new_v6 = """        gScreen->listen6Interface = strdup(iface);
-              gScreen->port = 0; // explicit IPv6 bind: disable the IPv4 listener
-          } else if (hostKind == kTVBindHostKindInvalid && gBindHost) {
-          """
-          if s.count(old_v6) != 1:
-              raise SystemExit("IPv6 bind patch context not found exactly once")
-          s = s.replace(old_v6, new_v6, 1)
+          line_v6 = "        gScreen->listen6Interface = strdup(iface);\n"
+          if s.count(line_v6) != 1:
+              raise SystemExit("IPv6 bind assignment not found exactly once")
+          s = s.replace(
+              line_v6,
+              line_v6 + "        gScreen->port = 0; // explicit IPv6 bind: disable the IPv4 listener\n",
+              1,
+          )
 
           p.write_text(s)
           PY
