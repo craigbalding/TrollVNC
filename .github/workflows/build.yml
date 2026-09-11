@@ -84,6 +84,44 @@ jobs:
           grep -q '<integer>5901</integer>' prefs/TrollVNCPrefs/Resources/Managed.plist
           ! grep -q 'FullPassword' prefs/TrollVNCPrefs/Resources/Managed.plist
 
+      - name: Apply single-family bind fix
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("src/trollvncserver.mm")
+          s = p.read_text()
+
+          old_v4 = """    if (hostKind == kTVBindHostKindIPv4) {
+              gScreen->listenInterface = v4Addr;
+          """
+          new_v4 = """    if (hostKind == kTVBindHostKindIPv4) {
+              gScreen->listenInterface = v4Addr;
+              gScreen->ipv6port = 0; // explicit IPv4 bind: disable the IPv6 listener
+          """
+          if s.count(old_v4) != 1:
+              raise SystemExit("IPv4 bind patch context not found exactly once")
+          s = s.replace(old_v4, new_v4, 1)
+
+          old_v6 = """        gScreen->listen6Interface = strdup(iface);
+          } else if (hostKind == kTVBindHostKindInvalid && gBindHost) {
+          """
+          new_v6 = """        gScreen->listen6Interface = strdup(iface);
+              gScreen->port = 0; // explicit IPv6 bind: disable the IPv4 listener
+          } else if (hostKind == kTVBindHostKindInvalid && gBindHost) {
+          """
+          if s.count(old_v6) != 1:
+              raise SystemExit("IPv6 bind patch context not found exactly once")
+          s = s.replace(old_v6, new_v6, 1)
+
+          p.write_text(s)
+          PY
+          grep -q 'gScreen->ipv6port = 0;' src/trollvncserver.mm
+          grep -q 'gScreen->port = 0;' src/trollvncserver.mm
+          git diff --check
+          git diff -- src/trollvncserver.mm
+
       - name: Build rootless package
         run: |
           set -euo pipefail
